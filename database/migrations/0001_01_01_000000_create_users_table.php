@@ -22,6 +22,7 @@ return new class extends Migration
             $table->string('middle_name')->nullable();
             $table->string('extension_name')->nullable();
             $table->string('contact_no')->nullable();
+            $table->string('status')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
