@@ -3,6 +3,7 @@
 namespace App\Services\Account;
 
 use App\Models\User;
+use App\Utilities\Utils;
 use Illuminate\Support\Facades\Hash;
 
 class RegistrationService
@@ -20,6 +21,66 @@ class RegistrationService
             'data' => $register,
             'status' => 201,
             'message' => 'Account created successfully!'
+        ];
+    }
+
+    public function getRegister(array $request)
+    {
+        $paginate = empty($request['paginate']) ? 15 : Utils::setPaginate($request['paginate']);
+        $pendingAcc = User::orderBy('created_at', 'desc')
+                    ->when(!empty($request['search']), function ($query) use ($request){
+                        $searchTerm = '%' . $request['search'] . '%';
+                        $query->where('last_name', 'LIKE', $searchTerm)
+                        ->orWhere('first_name', 'LIKE', $searchTerm)
+                        ->orWhere('middle_name', 'LIKE', $searchTerm)
+                        ->orWhere('extension_name', 'LIKE', $searchTerm)
+                        ->orWhere('contact_no', 'LIKE', $searchTerm)
+                        ->orWhere('email', 'LIKE', $searchTerm);
+              })
+              ->paginate($paginate);
+
+        return[
+            'registered' => $pendingAcc,
+            'message' => 'newly registered accounts',
+            'status' => 200,
+        ];
+    }
+
+    public function activateAcc(int $id)
+    {
+        $acc = User::find($id);
+        if (!$acc){
+            return $this->errorResponse('Account not found!');
+        }
+        $acc->status = 'active';
+        $acc->save();
+
+        return [
+            'message' => 'Account activated successfully.',
+            'status' => 200
+        ];
+    }
+  
+    public function removeAcc(int $id)
+    {
+        $acc = User::find($id);
+        if (!$acc){
+            return $this->errorResponse('Account does not exist!');
+        }
+
+        $acc->delete();
+        return [
+            'message' => 'Account removed successfully!',
+            'status' => 200
+        ];
+
+    }
+
+    private function errorResponse($message): array
+    {
+        return [
+            'status' => '400',
+            'message' => $message,
         ];
     }
 }
