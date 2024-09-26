@@ -2,15 +2,17 @@
 
 namespace App\Services\Account;
 
+use App\Mail\AccountActivatedMail;
 use App\Models\User;
 use App\Utilities\Utils;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 
 class RegistrationService
 {
     public function register(array $payload)
     {
-        $payload['user_type'] = $payload['user_type'] ?? 'job_order';
+        $payload['user_type'] = $payload['user_type'] ?? 'employee';
         $payload['status'] = $payload['status'] ?? 'pending';
 
         $payload['password'] = Hash::make($payload['password']);
@@ -54,6 +56,8 @@ class RegistrationService
         }
         $acc->status = 'active';
         $acc->save();
+
+        Mail::to($acc->email)->send(new AccountActivatedMail($acc));
 
         return [
             'message' => 'Account activated successfully.',

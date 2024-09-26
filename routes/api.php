@@ -15,5 +15,26 @@ Route::post('/login', [LoginController::class, 'login']);
 
 
 Route::get('/getPending', [RegistrationController::class, 'getPending']);
-Route::post('/activate/{id}', [RegistrationController::class, 'updateAccStatus']);
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::post('/activate/{id}', [RegistrationController::class, 'updateAccStatus']);
+});
 
+
+Route::group(['middleware' => 'auth:api'], function () {
+    Route::post('/logout', [LoginController::class, 'logout']);
+});
+
+// Route::middleware(['auth', 'role:admin'])->group(function () {
+//     Route::get('/admin', [AdminController::class, 'dashboard']);
+//     // Other admin routes
+// });
+
+// Route::middleware(['auth', 'role:chief'])->group(function () {
+//     Route::get('/chief', [ChiefController::class, 'dashboard']);
+//     // Other chief routes
+// });
+
+// Route::middleware(['auth', 'role:employee'])->group(function () {
+//     Route::get('/employee', [EmployeeController::class, 'dashboard']);
+//     // Other employee routes
+// });

@@ -22,4 +22,10 @@ class LoginController extends Controller
 
         return response($login, $login['status']);
     }
+
+    public function logout()
+    {
+        $logout = $this->loginService->logout();
+        return $logout; 
+    }
 }

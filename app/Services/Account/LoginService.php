@@ -21,7 +21,7 @@ class LoginService
                 'message' => 'Invalid credentials',
                 'status' => 401
             ];
-        }
+        } 
 
         if ($user->status !== 'active') {
             return [
@@ -40,7 +40,14 @@ class LoginService
         // cookie()->queue('remember_token', $token, 525600); 
 
            // Generate short-lived JWT token (access token)
-           $accessToken = JWTAuth::fromUser($user);
+           try {
+            $accessToken = JWTAuth::fromUser($user);
+        } catch (JWTException $e) {
+            return [
+                'message' => 'Could not create access token',
+                'status' => 500
+            ];
+        }
         
            // Generate a long-lived refresh token
            $refreshToken = Str::random(60); // You can also use JWT for this if needed
@@ -78,7 +85,9 @@ class LoginService
                 'user'=> $user,
                 'role' => $role,
                 'redirect_url' => $dashboardRoute,
-                'access_token' => $accessToken
+                'access_token' => $accessToken,
+                'token_type' => 'bearer',
+                'expires_in' => config('jwt.ttl') * 60
             ],
             'message' => 'Login successful',
             'status' => 200
@@ -98,7 +107,39 @@ class LoginService
         $accessToken = JWTAuth::fromUser($user);
 
         return response()->json([
-            'access_token' => $accessToken
+            'access_token' => $accessToken,
+            'token_type' => 'bearer',
+            'expires_in' => config('jwt.ttl') * 60
         ], 200);
     }
+
+    public function logout()
+    {
+        try {
+            // Invalidate the JWT token
+            JWTAuth::invalidate(JWTAuth::getToken());
+    
+            // Get the currently authenticated user
+            $user = JWTAuth::user();
+    
+            // If the user is found, clear their refresh token
+            if ($user) {
+                $user->refresh_token = null;
+                $user->save();
+            }
+    
+            // Clear the refresh token cookie
+            cookie()->queue(cookie()->forget('refresh_token'));
+    
+            // Return a success response
+            return response()->json([
+                'message' => 'Successfully logged out',
+                'status' => 200
+        ]);
+        } catch (JWTException $e) {
+            // Handle token invalidation errors
+            return response()->json(['message' => 'Failed to log out, please try again'], 500);
+        }
+    }
+
 }
