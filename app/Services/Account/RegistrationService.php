@@ -29,7 +29,8 @@ class RegistrationService
     public function getRegister(array $request)
     {
         $paginate = empty($request['paginate']) ? 15 : Utils::setPaginate($request['paginate']);
-        $pendingAcc = User::orderBy('created_at', 'desc')
+        $pendingAcc = User::where('status', 'pending')
+        ->orderBy('created_at', 'desc')
                     ->when(!empty($request['search']), function ($query) use ($request){
                         $searchTerm = '%' . $request['search'] . '%';
                         $query->where('last_name', 'LIKE', $searchTerm)

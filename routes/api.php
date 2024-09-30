@@ -13,15 +13,18 @@ Route::get('/user', function (Request $request) {
 Route::post('/register', [RegistrationController::class, 'registration']);
 Route::post('/login', [LoginController::class, 'login']);
 
-
-Route::get('/getPending', [RegistrationController::class, 'getPending']);
-Route::middleware(['auth', 'role:admin'])->group(function () {
+Route::middleware(['auth:api', 'role:admin'])->group(function () {
     Route::post('/activate/{id}', [RegistrationController::class, 'updateAccStatus']);
+    Route::get('/getPending', [RegistrationController::class, 'getPending']);
 });
 
+Route::middleware(['auth:api', 'role:employee'])->group(function () {
+
+});
+Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth:api');
 
 Route::group(['middleware' => 'auth:api'], function () {
-    Route::post('/logout', [LoginController::class, 'logout']);
+   
 });
 
 // Route::middleware(['auth', 'role:admin'])->group(function () {
