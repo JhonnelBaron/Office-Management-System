@@ -3,6 +3,7 @@
 use App\Http\Controllers\UserAccount\LoginController;
 use App\Http\Controllers\UserAccount\RegistrationController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/user', function (Request $request) {
@@ -25,6 +26,15 @@ Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth:api
 
 Route::group(['middleware' => 'auth:api'], function () {
    
+});
+
+Route::get('/login', function () {
+    if (Auth::check()) {
+        // Redirect based on user role
+        $user = Auth::user();
+        return redirect($user->user_type); // This should redirect to the appropriate dashboard
+    }
+    return view('auth.login'); // Render the login view if not authenticated
 });
 
 // Route::middleware(['auth', 'role:admin'])->group(function () {
