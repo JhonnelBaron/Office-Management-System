@@ -16,10 +16,17 @@ class RoleMiddleware
      */
     public function handle(Request $request, Closure $next, string $role): Response
     {
-        if (Auth::check() && Auth::user()->user_type === $role){
-            return $next($request);
+        // Check if the user is authenticated
+        if (!Auth::check()) {
+            return response()->json(['message' => 'Unauthorized access! Please log in.'], 401);
         }
-        
-        return response()->json(['message' => 'Unauthorized access!'], 403);
+
+        // Check if the user's role matches the required role
+        if (Auth::user()->user_type !== $role) {
+            return response()->json(['message' => 'Forbidden! You do not have permission to access this resource.'], 403);
+        }
+
+        // Proceed to the next middleware/request
+        return $next($request);
     }
 }

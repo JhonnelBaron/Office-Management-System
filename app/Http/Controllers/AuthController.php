@@ -38,9 +38,11 @@ class AuthController extends Controller implements HasMiddleware
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $this->logLoginTime($user->id);
+        // Capture the login time from logLoginTime
+        $timeIn = $this->logLoginTime($user->id);
 
-        return $this->respondWithToken($token);
+        // Include the login time in the response
+        return $this->respondWithToken($token, $timeIn);
     }
 
     private function logLoginTime($userId)
@@ -118,6 +120,7 @@ class AuthController extends Controller implements HasMiddleware
                 'validated_by' => null, // Assuming you may have this later too
             ]);
         }
+          return $timeIn;
     }
     
     
@@ -142,14 +145,41 @@ class AuthController extends Controller implements HasMiddleware
         return $this->respondWithToken($newToken);
     }
 
-    protected function respondWithToken($token)
+    protected function respondWithToken($token, $timeIn = null)
     {
-        return response()->json([
+           // Retrieve the authenticated user
+        $user = JWTAuth::user(); 
+        $response = [
             'access_token' => $token,
             'token_type' => 'bearer',
             'expires_in' => JWTAuth::factory()->getTTL() * 60,
             'user_type' => JWTAuth::user()->user_type, // Retrieve authenticated user type
-        ]);
+        ];
+
+            // Define redirect routes based on user type
+            switch ($user->user_type) {
+                case 'admin':
+                    $redirectTo = '/admin';
+                    break;
+                case 'employee':
+                    $redirectTo = '/employee';
+                    break;
+                case 'chief':
+                    $redirectTo = '/chief';
+                    break;
+                // Add more cases for other user types
+                default:
+                    $redirectTo = '/'; // Default route if user_type is not matched
+            }
+
+            // Add redirect_to and time_in if available
+            $response['redirect_to'] = $redirectTo;
+            if ($timeIn !== null) {
+                $response['time_in'] = $timeIn;
+            }
+
+
+            return response()->json($response);
     }
 
     public function showLoginForm()
@@ -166,7 +196,7 @@ class AuthController extends Controller implements HasMiddleware
         try {
             // Attempt to authenticate the user with JWT
             if ($user = JWTAuth::authenticate(JWTAuth::getToken())) {
-                $redirectTo = '/dashboard'; // Default redirection
+                $redirectTo = '/'; // Default redirection
     
                 // Customize redirection based on the user type
                 if ($user->user_type === 'admin') {
@@ -202,7 +232,7 @@ class AuthController extends Controller implements HasMiddleware
         try {
             // Attempt to authenticate the user with JWT
             if ($user = JWTAuth::authenticate(JWTAuth::getToken())) {
-                $redirectTo = '/dashboard'; // Default redirection
+                $redirectTo = '/'; // Default redirection
     
                 // Customize redirection based on the user type
                 if ($user->user_type === 'admin') {

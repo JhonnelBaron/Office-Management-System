@@ -29,16 +29,6 @@ class LoginService
                 'status' => 403
             ];
         }
-
-        // Generate a unique token
-        // $token = JWTAuth::fromUser($user);
-        // // $token = Str::random(60);
-        // $user->remember_token = $token; // Store the token in the user's record
-        // $user->save();
-
-        // // Set the token in a cookie
-        // cookie()->queue('remember_token', $token, 525600); 
-
            // Generate short-lived JWT token (access token)
            try {
             $accessToken = JWTAuth::fromUser($user);
@@ -82,7 +72,7 @@ class LoginService
         // Optionally, you can return the user details or a token for API-based login
         return [
             'data' => [
-                'user'=> $user,
+                'user'=> $user->makeHidden(['password', 'refresh_token']),
                 'role' => $role,
                 'redirect_url' => $dashboardRoute,
                 'access_token' => $accessToken,

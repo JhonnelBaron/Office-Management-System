@@ -77,9 +77,21 @@ Route::middleware(['auth:api', 'role:chief'])->group(function () {
 Route::post('register', [RegistrationController::class, 'registration']);
 Route::get('registration', [AuthController::class, 'showRegistrationForm']);
 Route::get('login', [AuthController::class, 'showLoginForm']);
-Route::post('login', [AuthController::class, 'login'])->middleware('guest');
+Route::post('login', [AuthController::class, 'login']);
 Route::middleware('auth:api')->group(function () {
     Route::get('me', [AuthController::class, 'me']);
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('refresh', [AuthController::class, 'refresh']);
 });
+
+// Route::middleware(['auth:api', 'userType:admin'])->group(function () {
+//     Route::get('/admin', [AdminController::class, 'dashboard']);
+// });
+
+// Route::middleware(['auth:api', 'userType:chief'])->group(function () {
+//     Route::get('/chief', [ChiefController::class, 'dashboard']);
+// });
+
+// Route::middleware(['auth:api', 'userType:employee'])->group(function () {
+//     Route::get('/employee', [EmployeeController::class, 'dashboard']);
+// });
