@@ -26,7 +26,7 @@ class TaskRequest extends FormRequest
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'link' => 'nullable|url',
-            'status' => 'required|in:In Progress,Done',
+            'status' => 'nullable|in:In Progress,Done',
             'date_added' => 'nullable|date',
             'date_finished' => 'nullable|date|after_or_equal:date_added',
             'hours_worked' => 'nullable|numeric|min:0',

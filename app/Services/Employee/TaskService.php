@@ -13,9 +13,10 @@ class TaskService
     {
         $user = JWTAuth::parseToken()->authenticate(); 
         $payload['user_id'] = $user->id;
+        $payload['status'] = 'In Progress';
+        $payload['date_added'] = now();
 
         $task = Task::create($payload);
-
         return [
             'data' => $task,
             'status' => 201,
