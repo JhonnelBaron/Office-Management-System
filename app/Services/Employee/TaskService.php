@@ -2,6 +2,7 @@
 
 namespace App\Services\Employee;
 
+use App\Events\TaskCreated;
 use App\Models\Employee\Task;
 use Illuminate\Container\Attributes\Auth;
 use Illuminate\Support\Carbon;
@@ -17,6 +18,8 @@ class TaskService
         $payload['date_added'] = now();
 
         $task = Task::create($payload);
+
+        // event(new TaskCreated($task));
         return [
             'data' => $task,
             'status' => 201,
@@ -26,8 +29,10 @@ class TaskService
     }
 
     public function get()
-    {
-        $tasks = Task::orderBy('created_at', 'desc')->get();
+    {    
+        $user = JWTAuth::parseToken()->authenticate();
+
+        $tasks = Task::where('user_id', $user->id)->orderBy('created_at', 'desc')->get();
         return [
             'tasks' => $tasks,
             'message' => 'Tasks retrieved successfully',

@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Chief\UserTaskController;
 use App\Http\Controllers\Employee\TaskController;
 use App\Http\Controllers\UserAccount\LoginController;
 use App\Http\Controllers\UserAccount\RegistrationController;
 use App\Models\Employee\Task;
+use App\Services\Chief\UserTaskService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -99,4 +101,8 @@ Route::middleware(['auth:api', 'userType:employee'])->group(function () {
     Route::post('addTask', [TaskController::class, 'store']);
     Route::post('updateTask/{id}', [TaskController::class, 'edit']);
     Route::get('tasks', [TaskController::class, 'read']);
+});
+
+Route::middleware(['auth:api', 'userType:chief'])->group(function (){
+    Route::get('/userTasks', [UserTaskController::class, 'fetch']);
 });
