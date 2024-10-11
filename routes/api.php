@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Chief\UserTaskController;
 use App\Http\Controllers\Employee\TaskController;
+use App\Http\Controllers\PusherController;
 use App\Http\Controllers\UserAccount\LoginController;
 use App\Http\Controllers\UserAccount\RegistrationController;
 use App\Models\Employee\Task;
@@ -86,6 +87,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('me', [AuthController::class, 'me']);
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('refresh', [AuthController::class, 'refresh']);
+    route::post('/pusher/auth', [PusherController::class, 'auth']);
 });
 
 // Route::middleware(['auth:api', 'userType:admin'])->group(function () {

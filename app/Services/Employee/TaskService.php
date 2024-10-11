@@ -19,7 +19,7 @@ class TaskService
 
         $task = Task::create($payload);
 
-        // event(new TaskCreated($task));
+        event(new TaskCreated($task));
         return [
             'data' => $task,
             'status' => 201,
