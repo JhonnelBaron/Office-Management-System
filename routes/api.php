@@ -1,12 +1,14 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Chief\AttendanceController;
 use App\Http\Controllers\Chief\UserTaskController;
 use App\Http\Controllers\Employee\TaskController;
 use App\Http\Controllers\PusherController;
 use App\Http\Controllers\UserAccount\LoginController;
 use App\Http\Controllers\UserAccount\RegistrationController;
 use App\Models\Employee\Task;
+use App\Services\Chief\AttendanceService;
 use App\Services\Chief\UserTaskService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -107,4 +109,5 @@ Route::middleware(['auth:api', 'userType:employee'])->group(function () {
 
 Route::middleware(['auth:api', 'userType:chief'])->group(function (){
     Route::get('/userTasks', [UserTaskController::class, 'fetch']);
+    Route::get('/attendance', [AttendanceController::class, 'fetch']);
 });

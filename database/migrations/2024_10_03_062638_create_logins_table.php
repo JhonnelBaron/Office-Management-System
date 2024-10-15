@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedInteger('user_id')->nullable();
             $table->time('time_in')->nullable();
+            $table->time('time_out')->nullable();
             $table->date('date')->nullable();
             $table->enum('status', ['early', 'late', 'exactly', 'absent'])->nullable();
             $table->time('allowance')->nullable();

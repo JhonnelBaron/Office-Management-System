@@ -12,6 +12,7 @@ class Login extends Model
     protected $fillable = [
         'user_id',
         'time_in',
+        'time_out',
         'date',
         'status',
         'allowance',

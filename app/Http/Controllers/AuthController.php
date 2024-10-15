@@ -131,7 +131,29 @@ class AuthController extends Controller implements HasMiddleware
     }
 
     public function logout()
-    {
+    { 
+        // Get the currently authenticated user
+        $user = JWTAuth::user();
+
+        // Get the current date
+        $currentDate = now()->toDateString();
+
+        // Retrieve the existing login record for today
+        $existingLogin = Login::where('user_id', $user->id)
+            ->where('date', $currentDate)
+            ->first();
+
+        // If the login record exists, update the time_out
+        if ($existingLogin) {
+            $currentTime = now()->format('H:i:s'); // Get the current time
+            
+            // Replace the existing time_out with the current time
+            $existingLogin->time_out = $currentTime; // Set the time_out
+            
+            // Save the updated record
+            $existingLogin->save();
+        }
+        
         JWTAuth::invalidate(JWTAuth::getToken());
 
         return response()->json(['message' => 'Successfully logged out']);
