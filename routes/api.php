@@ -110,4 +110,5 @@ Route::middleware(['auth:api', 'userType:employee'])->group(function () {
 Route::middleware(['auth:api', 'userType:chief'])->group(function (){
     Route::get('/userTasks', [UserTaskController::class, 'fetch']);
     Route::get('/attendance', [AttendanceController::class, 'fetch']);
+    Route::get('/employees', [AttendanceController::class, 'fetchEmployees']);
 });

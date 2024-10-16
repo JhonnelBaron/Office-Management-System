@@ -20,4 +20,10 @@ class AttendanceController extends Controller
         $attendance = $this->attendanceService->get();
         return response($attendance, $attendance['status']);
     }
+
+    public function fetchEmployees()
+    {
+        $employees = $this->attendanceService->getEmployees();
+        return response ($employees, $employees['status']);
+    }
 }
