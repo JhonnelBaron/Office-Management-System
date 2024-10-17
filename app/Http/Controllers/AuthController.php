@@ -45,83 +45,157 @@ class AuthController extends Controller implements HasMiddleware
         return $this->respondWithToken($token, $timeIn);
     }
 
+    // private function logLoginTime($userId)
+    // {
+    //     // Get the current time and date
+    //     $currentTime = now();
+    //     $currentDate = $currentTime->toDateString();
+    //     $timeIn = $currentTime->format('H:i:s');
+    
+    //     // Define 8 AM and 4 AM for comparison
+    //     $eightAM = \Carbon\Carbon::createFromTime(8, 0, 0);
+    //     $fourAM = \Carbon\Carbon::createFromTime(4, 0, 0);
+    //     $timeInCarbon = \Carbon\Carbon::createFromFormat('H:i:s', $timeIn);
+    
+    //     // Check if the login time is valid (after 4 AM)
+    //     if ($timeInCarbon->isBefore($fourAM)) {
+    //         // If the login time is before 4 AM, do not record it
+    //         return; // Exit the function early
+    //     }
+    
+    //     // Initialize allowance variables
+    //     $allowanceMinutes = 0;
+    //     $allowanceHours = 0;
+    
+    //     // Determine the status and allowance
+    //     if ($timeInCarbon->isBefore($eightAM)) {
+    //         $status = 'early';
+    //         $allowanceMinutes = $eightAM->diffInMinutes($timeInCarbon);
+    //     } elseif ($timeInCarbon->eq($eightAM)) {
+    //         $status = 'exactly';
+    //         $allowanceMinutes = 0;
+    //     } else { // After 8 AM
+    //         $status = 'late';
+    //         // Calculate how late the user is
+    //         $allowanceHours = $eightAM->diffInHours($timeInCarbon); // Get the hours late
+    //         $allowanceMinutes = $eightAM->diffInMinutes($timeInCarbon) % 60; // Get the remaining minutes
+    //     }
+    
+    //     // Ensure allowance hours and minutes are non-negative
+    //     $allowanceHours = max(0, $allowanceHours);
+    //     $allowanceMinutes = max(0, $allowanceMinutes);
+    
+    //     // Format allowance as HH:MM:SS
+    //     $allowanceFormatted = sprintf('%02d:%02d:00', $allowanceHours, $allowanceMinutes);
+    
+    // // Determine the score based on the allowance
+    // if ($status === 'exactly') {
+    //     $score = 3; // Score for logging in exactly at 8:00 AM
+    // } elseif ($status === 'late') {
+    //     // Adjusted scoring logic based on total minutes
+    //     if ($allowanceHours === 0 && $allowanceMinutes <= 30) {
+    //         $score = 2; // Score if late but within 30 minutes
+    //     } else {
+    //         $score = 1; // Score if late and more than 30 minutes
+    //     }
+    // } else { // Early
+    //     $score = 3; // Assuming you want 3 points for being early
+    // }
+    
+    //     // Check if a record for today already exists for this user
+    //     $existingLogin = Login::where('user_id', $userId)
+    //         ->where('date', $currentDate)
+    //         ->first();
+    
+    //     // If no record exists, create a new one
+    //     if (!$existingLogin) {
+    //         Login::create([
+    //             'user_id' => $userId,
+    //             'time_in' => $timeIn,
+    //             'date' => $currentDate,
+    //             'status' => $status,
+    //             'allowance' => $allowanceFormatted, // Store formatted allowance correctly
+    //             'score' => $score,
+    //             'validation' => null, // Assuming you may have some validation logic later
+    //             'validated_by' => null, // Assuming you may have this later too
+    //         ]);
+    //     }
+    //       return $timeIn;
+    // }
     private function logLoginTime($userId)
-    {
-        // Get the current time and date
-        $currentTime = now();
-        $currentDate = $currentTime->toDateString();
-        $timeIn = $currentTime->format('H:i:s');
-    
-        // Define 8 AM and 4 AM for comparison
-        $eightAM = \Carbon\Carbon::createFromTime(8, 0, 0);
-        $fourAM = \Carbon\Carbon::createFromTime(4, 0, 0);
-        $timeInCarbon = \Carbon\Carbon::createFromFormat('H:i:s', $timeIn);
-    
-        // Check if the login time is valid (after 4 AM)
-        if ($timeInCarbon->isBefore($fourAM)) {
-            // If the login time is before 4 AM, do not record it
-            return; // Exit the function early
-        }
-    
-        // Initialize allowance variables
+{
+    // Get the current time and date
+    $currentTime = now();
+    $currentDate = $currentTime->toDateString();
+    $timeIn = $currentTime->format('H:i:s');
+
+    // Define 8 AM and 4 AM for comparison
+    $eightAM = \Carbon\Carbon::createFromTime(8, 0, 0);
+    $fourAM = \Carbon\Carbon::createFromTime(4, 0, 0);
+    $timeInCarbon = \Carbon\Carbon::createFromFormat('H:i:s', $timeIn);
+
+    // Check if the login time is valid (after 4 AM)
+    if ($timeInCarbon->isBefore($fourAM)) {
+        // If the login time is before 4 AM, do not record it
+        return; // Exit the function early
+    }
+
+    // Determine the status and calculate the total minutes late or early
+    $status = '';
+    $totalMinutesLate = 0;
+
+    if ($timeInCarbon->isBefore($eightAM)) {
+        $status = 'early';
+        $allowanceMinutes = $eightAM->diffInMinutes($timeInCarbon);
+    } elseif ($timeInCarbon->eq($eightAM)) {
+        $status = 'exactly';
         $allowanceMinutes = 0;
-        $allowanceHours = 0;
-    
-        // Determine the status and allowance
-        if ($timeInCarbon->isBefore($eightAM)) {
-            $status = 'early';
-            $allowanceMinutes = $eightAM->diffInMinutes($timeInCarbon);
-        } elseif ($timeInCarbon->eq($eightAM)) {
-            $status = 'exactly';
-            $allowanceMinutes = 0;
-        } else { // After 8 AM
-            $status = 'late';
-            // Calculate how late the user is
-            $allowanceHours = $eightAM->diffInHours($timeInCarbon); // Get the hours late
-            $allowanceMinutes = $eightAM->diffInMinutes($timeInCarbon) % 60; // Get the remaining minutes
-        }
-    
-        // Ensure allowance hours and minutes are non-negative
-        $allowanceHours = max(0, $allowanceHours);
-        $allowanceMinutes = max(0, $allowanceMinutes);
-    
-        // Format allowance as HH:MM:SS
-        $allowanceFormatted = sprintf('%02d:%02d:00', $allowanceHours, $allowanceMinutes);
-    
-    // Determine the score based on the allowance
+    } else { // After 8 AM
+        $status = 'late';
+        // Calculate the total minutes late
+        $totalMinutesLate = $eightAM->diffInMinutes($timeInCarbon);
+    }
+
+    // Format allowance as HH:MM:SS
+    $allowanceHours = floor($totalMinutesLate / 60);
+    $allowanceMinutes = $totalMinutesLate % 60;
+    $allowanceFormatted = sprintf('%02d:%02d:00', $allowanceHours, $allowanceMinutes);
+
+    // Determine the score based on the total minutes late
     if ($status === 'exactly') {
         $score = 3; // Score for logging in exactly at 8:00 AM
     } elseif ($status === 'late') {
-        // Adjusted scoring logic based on total minutes
-        if ($allowanceHours === 0 && $allowanceMinutes <= 30) {
+        // Adjusted scoring logic based on total minutes late
+        if ($totalMinutesLate <= 30) {
             $score = 2; // Score if late but within 30 minutes
         } else {
             $score = 1; // Score if late and more than 30 minutes
         }
     } else { // Early
-        $score = 3; // Assuming you want 3 points for being early
+        $score = 3; // Score for being early
     }
-    
-        // Check if a record for today already exists for this user
-        $existingLogin = Login::where('user_id', $userId)
-            ->where('date', $currentDate)
-            ->first();
-    
-        // If no record exists, create a new one
-        if (!$existingLogin) {
-            Login::create([
-                'user_id' => $userId,
-                'time_in' => $timeIn,
-                'date' => $currentDate,
-                'status' => $status,
-                'allowance' => $allowanceFormatted, // Store formatted allowance correctly
-                'score' => $score,
-                'validation' => null, // Assuming you may have some validation logic later
-                'validated_by' => null, // Assuming you may have this later too
-            ]);
-        }
-          return $timeIn;
+
+    // Check if a record for today already exists for this user
+    $existingLogin = Login::where('user_id', $userId)
+        ->where('date', $currentDate)
+        ->first();
+
+    // If no record exists, create a new one
+    if (!$existingLogin) {
+        Login::create([
+            'user_id' => $userId,
+            'time_in' => $timeIn,
+            'date' => $currentDate,
+            'status' => $status,
+            'allowance' => $allowanceFormatted, // Store formatted allowance correctly
+            'score' => $score,
+            'validation' => null, // Assuming you may have some validation logic later
+            'validated_by' => null, // Assuming you may have this later too
+        ]);
     }
+
+    return $timeIn;
+}
     
     
 
