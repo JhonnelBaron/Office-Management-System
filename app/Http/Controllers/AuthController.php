@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
 
@@ -24,26 +25,104 @@ class AuthController extends Controller implements HasMiddleware
     }
 
     public function login(Request $request)
-    {
-        $credentials = $request->only('email', 'password');
+{   
+    $userIp = $request->ip(); 
+    $allowedIp = env('OFFICE_LAPTOP_IP');
+    $allowedFingerprint = env('OFFICE_FINGERPRINT');
 
-        // Check if user exists and is active
-        $user = User::where('email', $credentials['email'])->first();
+    // Debugging: Log the incoming IP and compare
+    Log::info('Incoming IP: ' . $userIp);
+    Log::info('Allowed IP: ' . $allowedIp);
 
-        if (!$user || $user->status !== 'active') {
-            return response()->json(['error' => 'Account not active'], 401);
-        }
+    // Allow login even if the IP is not authorized, but only record time if the IP is authorized
+    $isAuthorizedIp = ($request->ip() === $allowedIp);
+    $isAuthorizedFingerprint = ($request->input('deviceFingerprint') === $allowedFingerprint);
 
-        if (!$token = JWTAuth::attempt($credentials)) {
-            return response()->json(['error' => 'Unauthorized'], 401);
-        }
-
-        // Capture the login time from logLoginTime
-        $timeIn = $this->logLoginTime($user->id);
-
-        // Include the login time in the response
-        return $this->respondWithToken($token, $timeIn);
+    // Check for IP and device fingerprint authorization
+    if (!$isAuthorizedIp) {
+        Log::info('Unauthorized IP attempt: ' . $userIp);
     }
+
+    if (!$isAuthorizedFingerprint) {
+        Log::info('Unauthorized device fingerprint attempt: ' . $request->input('deviceFingerprint'));
+    }
+
+    // Always proceed with login regardless of IP or fingerprint
+    $credentials = $request->only('email', 'password');
+    $user = User::where('email', $credentials['email'])->first();
+
+    if (!$user || $user->status !== 'active') {
+        return response()->json(['error' => 'Account not active'], 401);
+    }
+
+    if (!$token = JWTAuth::attempt($credentials)) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+
+    // Only log time-in if IP is authorized
+    $timeIn = null;
+    if ($isAuthorizedIp && $isAuthorizedFingerprint) {
+        $timeIn = $this->logLoginTime($user->id); // Log the time if authorized IP and device fingerprint match
+    }
+
+    return $this->respondWithToken($token, $timeIn);
+}
+
+
+    // public function login(Request $request)
+    // {   
+    //     $userIp = $request->ip(); 
+    //     $allowedIp = env('OFFICE_LAPTOP_IP');
+    //     $allowedFingeprint = env('OFFICE_FINGERPRINT');
+
+    //         // Debugging: Log the incoming IP and compare
+    //     Log::info('Incoming IP: ' . $userIp);
+    //     Log::info('Allowed IP: ' . $allowedIp);
+
+    //     if ($request->ip() !== $allowedIp){
+    //         return response()->json(['error' => 'Unauthorized IP'], 401);
+    //     }
+
+    //     if ($request->input('deviceFingerprint') !== $allowedFingeprint){
+    //         return response()->json(['error' => 'Unauthorized device'], 401);
+    //     }
+
+    //     $credentials = $request->only('email', 'password');
+    //     $user = User::where('email', $credentials['email'])->first();
+
+    //     if (!$user || $user->status !== 'active'){
+    //         return response()->json(['error' => 'Account not active'], 401);
+    //     }
+
+    //     if (!$token =JWTAuth::attempt($credentials)){
+    //         return response()->json(['error' => 'Unauthorized'], 401);
+    //     }
+
+    //     $timeIn = $this->logLoginTime($user->id);
+    //     return $this->respondWithToken($token, $timeIn);
+    // }
+
+    // public function login(Request $request)
+    // {
+    //     $credentials = $request->only('email', 'password');
+
+    //     // Check if user exists and is active
+    //     $user = User::where('email', $credentials['email'])->first();
+
+    //     if (!$user || $user->status !== 'active') {
+    //         return response()->json(['error' => 'Account not active'], 401);
+    //     }
+
+    //     if (!$token = JWTAuth::attempt($credentials)) {
+    //         return response()->json(['error' => 'Unauthorized'], 401);
+    //     }
+
+    //     // Capture the login time from logLoginTime
+    //     $timeIn = $this->logLoginTime($user->id);
+
+    //     // Include the login time in the response
+    //     return $this->respondWithToken($token, $timeIn);
+    // }
 
     // private function logLoginTime($userId)
     // {
@@ -131,7 +210,7 @@ class AuthController extends Controller implements HasMiddleware
 
     // Define 8 AM and 4 AM for comparison
     $eightAM = \Carbon\Carbon::createFromTime(8, 0, 0);
-    $fourAM = \Carbon\Carbon::createFromTime(4, 0, 0);
+    $fourAM = \Carbon\Carbon::createFromTime(0, 0, 0);
     $timeInCarbon = \Carbon\Carbon::createFromFormat('H:i:s', $timeIn);
 
     // Check if the login time is valid (after 4 AM)
@@ -244,6 +323,7 @@ class AuthController extends Controller implements HasMiddleware
     protected function respondWithToken($token, $timeIn = null)
     {
            // Retrieve the authenticated user
+        JWTAuth::factory()->setTTL(1440); 
         $user = JWTAuth::user(); 
         $response = [
             'access_token' => $token,
