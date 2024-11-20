@@ -25,6 +25,7 @@ class RegistrationRequest extends FormRequest
             'user_type' => 'nullable|string',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|min:8',
+            'position' => 'required',
             'last_name' => 'required|string|max:255',
             'first_name' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:255',

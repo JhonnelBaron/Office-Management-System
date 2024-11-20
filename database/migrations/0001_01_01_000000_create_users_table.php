@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->enum('position', ['Project Support Staff I', 'Project Support Staff II', 'Project Support Staff III', 'Admin Support Staff', 'Chief TESD Specialist', 'Supervising TESD Specialist', 'System Admin'])->nullable();
             $table->string('last_name')->nullable();
             $table->string('first_name')->nullable();
             $table->string('middle_name')->nullable();
