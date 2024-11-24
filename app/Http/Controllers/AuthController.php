@@ -8,7 +8,10 @@ use App\Models\User;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Password;
+use Mockery\Generator\StringManipulation\Pass\Pass;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
 
@@ -20,7 +23,7 @@ class AuthController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            new Middleware('auth:api', except: ['login','showLoginForm', 'showRegistrationForm']),
+            new Middleware('auth:api', except: ['login','showLoginForm', 'showRegistrationForm', 'passwordResetLink', 'resetPassword']),
         ];
     }
 
@@ -429,6 +432,71 @@ class AuthController extends Controller implements HasMiddleware
             return response()->json(['message' => 'Token is invalid or expired'], 401);
         }
     }
+
+    public function passwordResetLink(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email'
+        ]);
+
+        $status = Password::sendResetLink(
+            $request->only('email')
+        );
+
+        if ($status === Password::RESET_LINK_SENT){
+            return response()->json(['message' => 'A password reset link has been sent to your email'], 200);
+        }
+
+        return response()->json(['message' => 'Failed to send reset link'], 400);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+            'token' => 'required',
+            'password' => 'required|min:8|confirmed',
+        ]);
+    
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function ($user, $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                ])->save();
+            }
+        );
+    
+        if ($status === Password::PASSWORD_RESET) {
+            return response()->json(['message' => 'Password reset successful'], 200);
+        }
+    
+        return response()->json(['message' => 'Failed to reset password'], 400);
+    }
+
+    public function showResetForm(Request $request)
+    {
+        // Get token and email from the query params
+        $token = $request->query('token');
+        $email = $request->query('email');
+    
+        // If token or email is missing, return error message
+        if (!$token || !$email) {
+            return response()->json(['message' => 'Invalid or missing token.'], 400);
+        }
+    
+        // Optionally, check if the token is valid by verifying it in the password_resets table
+        // For now, Laravel automatically handles token validation when resetting the password
+    
+        return response()->json([
+            'token' => $token,
+            'email' => $email,
+        ], 200);
+    }
+    
+    
+
+
 
     
     

@@ -19,8 +19,16 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 
+Route::post('/password/email', [AuthController::class, 'passwordResetLink']);
 
-// Route::post('/login', [LoginController::class, 'login']);
+route::post('/password/reset', [AuthController::class, 'resetPassword']);
+Route::get('/password/reset', [AuthController::class, 'showResetForm']);
+Route::get('/password/reset/{token}', function ($token) {
+    // Redirect to frontend route with the token and email as query parameters
+    $frontendUrl = config('app.frontend_url') . '/update-password?token=' . $token . '&email=' . request('email');
+    return redirect($frontendUrl);
+})->name('password.reset');
+
 
 Route::middleware(['auth:api', 'role:admin'])->group(function () {
     Route::get('/admin', function() {
@@ -50,35 +58,6 @@ Route::middleware(['auth:api', 'role:chief'])->group(function () {
         ]);
     });
 });
-// Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth:api');
-
-// Route::group(['middleware' => 'auth:api'], function () {
-   
-// });
-
-// Route::get('/login', function () {
-//     if (Auth::check()) {
-//         // Redirect based on user role
-//         $user = Auth::user();
-//         return redirect($user->user_type); // This should redirect to the appropriate dashboard
-//     }
-//     return view('auth.login'); // Render the login view if not authenticated
-// });
-
-// Route::middleware(['auth', 'role:admin'])->group(function () {
-//     Route::get('/admin', [AdminController::class, 'dashboard']);
-//     // Other admin routes
-// });
-
-// Route::middleware(['auth', 'role:chief'])->group(function () {
-//     Route::get('/chief', [ChiefController::class, 'dashboard']);
-//     // Other chief routes
-// });
-
-// Route::middleware(['auth', 'role:employee'])->group(function () {
-//     Route::get('/employee', [EmployeeController::class, 'dashboard']);
-//     // Other employee routes
-// });
 
 //Auth 
 Route::post('register', [RegistrationController::class, 'registration']);
