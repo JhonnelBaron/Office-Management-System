@@ -35,5 +35,11 @@ class TaskController extends Controller
         return response($task, $task['status']);
     }
 
+    public function task($id)
+    {
+        $task = $this->taskService->show($id);
+        return response($task, $task['status']);
+    }
+
     
 }

@@ -80,4 +80,9 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->hasMany(Task::class, 'user_id');
     }
+
+    public function documentLinks()
+    {
+        return $this->hasMany(DocumentLink::class, 'user_id');
+    }
 }

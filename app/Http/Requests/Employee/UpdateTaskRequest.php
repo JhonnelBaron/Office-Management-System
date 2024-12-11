@@ -22,14 +22,20 @@ class UpdateTaskRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
             'link' => 'nullable|url',
-            'status' => 'nullable|in:In Progress,Done',
+            'status' => 'nullable|in:In Progress,Done,Suspended,Cancelled',
             'date_added' => 'nullable|date',
             'date_finished' => 'nullable|date|after_or_equal:date_added',
             'hours_worked' => 'nullable|numeric|min:0',
             'pending_days' => 'nullable|numeric|min:0',
+            'paps' => 'nullable|string',
+            'type' => 'nullable|string',
+            'task' => 'nullable|string',
+            'no_of_document' => 'nullable|integer',
+            'document_links' => 'nullable|array',
+            'document_links.*.document_link' => 'nullable|url',
         ];
     }
 }
