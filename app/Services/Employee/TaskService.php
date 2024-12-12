@@ -160,6 +160,8 @@ class TaskService
     public function update(int $id, array $payload)
 {
     $task = Task::find($id);
+    $user = JWTAuth::parseToken()->authenticate();
+
 
     if (!$task) {
         return $this->errorResponse('Task not found!');
@@ -168,6 +170,7 @@ class TaskService
     // Ensure only one task can be "In Progress"
     if (isset($payload['status']) && $payload['status'] === 'In Progress') {
         $existingTaskInProgress = Task::where('status', 'In Progress')
+                                    ->where('user_id', $user->id)
                                     ->where('id', '!=', $id)
                                     ->exists();
 
