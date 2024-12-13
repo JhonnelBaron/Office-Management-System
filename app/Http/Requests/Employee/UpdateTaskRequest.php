@@ -35,7 +35,7 @@ class UpdateTaskRequest extends FormRequest
             'task' => 'nullable|string',
             'no_of_document' => 'nullable|integer',
             'document_links' => 'nullable|array',
-            'document_links.*.document_link' => 'nullable|url',
+            'document_links.*.document_link' => 'required|url',
         ];
     }
 }
