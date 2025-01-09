@@ -3,13 +3,12 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Chief\AttendanceController;
 use App\Http\Controllers\Chief\UserTaskController;
+use App\Http\Controllers\Employee\DashboardController;
 use App\Http\Controllers\Employee\TaskController;
+use App\Http\Controllers\FileController;
 use App\Http\Controllers\PusherController;
 use App\Http\Controllers\UserAccount\LoginController;
 use App\Http\Controllers\UserAccount\RegistrationController;
-use App\Models\Employee\Task;
-use App\Services\Chief\AttendanceService;
-use App\Services\Chief\UserTaskService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -64,6 +63,7 @@ Route::post('register', [RegistrationController::class, 'registration']);
 Route::get('registration', [AuthController::class, 'showRegistrationForm']);
 Route::get('login', [AuthController::class, 'showLoginForm']);
 Route::post('login', [AuthController::class, 'login']);
+Route::post('login-photo', [FileController::class, 'store']);
 Route::middleware('auth:api')->group(function () {
     Route::get('me', [AuthController::class, 'me']);
     Route::post('logout', [AuthController::class, 'logout']);
@@ -85,10 +85,13 @@ Route::middleware(['auth:api', 'userType:employee'])->group(function () {
     Route::post('updateTask/{id}', [TaskController::class, 'edit']);
     Route::get('task/{id}', [TaskController::class, 'task']);
     Route::get('tasks', [TaskController::class, 'read']);
+    Route::get('dashboard/tasks', [DashboardController::class, 'getUserTasks']);
+    Route::get('dashboard/attendance', [DashboardController::class, 'getUserAttendance']);
 });
 
 Route::middleware(['auth:api', 'userType:chief'])->group(function (){
     Route::get('/userTasks', [UserTaskController::class, 'fetch']);
     Route::get('/attendance', [AttendanceController::class, 'fetch']);
     Route::get('/employees', [AttendanceController::class, 'fetchEmployees']);
+    Route::get('/hours', [UserTaskController::class, 'fetchHours']);
 });
