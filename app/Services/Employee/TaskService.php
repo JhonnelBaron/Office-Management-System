@@ -14,6 +14,19 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 
 class TaskService
 {
+    public function getUserData()
+    {
+        $user = JWTAuth::parseToken()->authenticate();
+
+        return [
+            'id' => $user->id,
+            'first_name' => $user->first_name,
+            'last_name' => $user->last_name,
+            'position' => $user->position,
+            'message' => 'User information retrieved successfully',
+            'status' => 200,
+        ];
+    }
     public function add(array $payload)
     {
         $user = JWTAuth::parseToken()->authenticate();
@@ -96,302 +109,84 @@ class TaskService
         ];
     }
 
-    // public function update(int $id, array $payload)
-    // {
-    //     $task = Task::find($id);
-    
-    //     if (!$task) {
-    //         return $this->errorResponse('Task not found!');
-    //     }
 
-    //         // Ensure only one task can be "In Progress"
-    //         if (isset($payload['status']) && $payload['status'] === 'In Progress') {
-    //             $existingTaskInProgress = Task::where('status', 'In Progress')
-    //                                         ->where('id', '!=', $id)
-    //                                         ->exists();
+    public function update(int $id, array $payload)
+    {
+        $task = Task::find($id);
+        $user = JWTAuth::parseToken()->authenticate();
 
-    //             if ($existingTaskInProgress) {
-    //                 return [
-    //                     'status' => 400,
-    //                     'message' => 'Another task is already In Progress. You cannot update this task to In Progress.',
-    //                 ];
-    //             }
-    //         }
-    
-    //     // Check and handle task completion logic
-    //     if (isset($payload['status']) && $payload['status'] === 'Done') {
-    //         $payload['date_finished'] = Carbon::now();
-    //         if ($task->date_added) {
-    //             $dateAdded = Carbon::parse($task->date_added);
-    //             $payload['hours_worked'] = $dateAdded->diffInHours(Carbon::now());
-    //         } else {
-    //             $payload['hours_worked'] = 0;
-    //         }
-    //     }
-    
-    //     // Validate the document links count
-    //     if (isset($payload['document_links'])) {
-    //         $documentLinksCount = count($payload['document_links']);
-    //         $noOfDocument = $payload['no_of_document'] ?? $task->no_of_document;
-    
-    //         if ($documentLinksCount !== $noOfDocument) {
-    //             return [
-    //                 'status' => 422,
-    //                 'message' => "The number of document links must match exactly the specified no_of_document. Expected: $noOfDocument, Got: $documentLinksCount",
-    //             ];
-    //         }
-    
-    //         // Separate the document links update logic
-    //         $this->updateDocumentLinks($task, $payload['document_links']);
-    //     }
-    
-    //     // Update task fields
-    //     $task->update($payload);
-    
-    //     // Reload task with its document links to reflect the updated data
-    //     $task = $task->load('documentLinks');
-    
-    //     return [
-    //         'data' => $task,
-    //         'status' => 200,
-    //         'message' => 'Task updated successfully!',
-    //     ];
-    // }
+        if (!$task) {
+            return $this->errorResponse('Task not found!');
+        }
 
-//     public function update(int $id, array $payload)
-// {
-//     $task = Task::find($id);
-//     $user = JWTAuth::parseToken()->authenticate();
+        if (isset($payload['status']) && $payload['status'] === 'In Progress') {
+            $existingTaskInProgress = Task::where('status', 'In Progress')
+                ->where('user_id', $user->id)
+                ->where('id', '!=', $id)
+                ->exists();
 
+            if ($existingTaskInProgress) {
+                return [
+                    'status' => 400,
+                    'message' => 'Another task is already In Progress. You cannot update this task to In Progress.',
+                ];
+            }
 
-//     if (!$task) {
-//         return $this->errorResponse('Task not found!');
-//     }
+            // Resume from suspended state
+            if ($task->status === 'Suspended' && $task->time_suspended) {
+                $suspensionDuration = Carbon::parse($task->time_suspended)->diffInSeconds(Carbon::now());
+                $task->time_suspended = null; // Clear suspension timestamp
+            }
+        }
 
-//     // Ensure only one task can be "In Progress"
-//     if (isset($payload['status']) && $payload['status'] === 'In Progress') {
-//         $existingTaskInProgress = Task::where('status', 'In Progress')
-//                                     ->where('user_id', $user->id)
-//                                     ->where('id', '!=', $id)
-//                                     ->exists();
+        if (isset($payload['status']) && $payload['status'] === 'Suspended') {
+            if ($task->status === 'In Progress' && $task->updated_at) {
+                $workDuration = $task->updated_at->diffInSeconds(Carbon::now());
+                $task->hours_worked = ($task->hours_worked ?? 0) + $workDuration / 3600;
+            }
+            $payload['hours_worked'] = $task->hours_worked;
+            $payload['time_suspended'] = Carbon::now();
+        }
 
-//         if ($existingTaskInProgress) {
-//             return [
-//                 'status' => 400,
-//                 'message' => 'Another task is already In Progress. You cannot update this task to In Progress.',
-//             ];
-//         }
+        if (isset($payload['status']) && $payload['status'] === 'Done') {
+            if ($task->status === 'Suspended') {
+                return [
+                    'status' => 400,
+                    'message' => 'A task in Suspended status cannot be marked as Done directly. Please set it to In Progress first.',
+                ];
+            }
+            
+            if ($task->status === 'In Progress') {
+                $workDuration = $task->updated_at->diffInSeconds(Carbon::now());
+                $task->hours_worked = ($task->hours_worked ?? 0) + $workDuration / 3600;
+            }
+            $payload['hours_worked'] = $task->hours_worked;
+            $payload['date_finished'] = Carbon::now();
+            $payload['time_suspended'] = null;
+        }
 
-//         // Handle resuming from "Suspended"
-//         if ($task->status === 'Suspended') {
-//             $suspensionDuration = Carbon::parse($task->time_suspended)->diffInSeconds(Carbon::now());
-//             $task->time_suspended = null;
-//             $task->hours_worked = ($task->hours_worked ?? 0) + $suspensionDuration / 3600; // Convert seconds to hours
-//         }
-//     }
+        if (isset($payload['document_links'])) {
+            $documentLinksCount = count($payload['document_links']);
+            $noOfDocument = $payload['no_of_document'] ?? $task->no_of_document;
 
-//     // Handle task suspension
-//     if (isset($payload['status']) && $payload['status'] === 'Suspended') {
-//         $payload['time_suspended'] = Carbon::now();
-//     }
+            if ($documentLinksCount !== $noOfDocument) {
+                return [
+                    'status' => 422,
+                    'message' => "The number of document links must match exactly the specified no_of_document. Expected: $noOfDocument, Got: $documentLinksCount",
+                ];
+            }
+            $this->updateDocumentLinks($task, $payload['document_links']);
+        }
 
-//     // Handle task completion logic
-//     if (isset($payload['status']) && $payload['status'] === 'Done') {
-//         $payload['date_finished'] = Carbon::now();
+        $task->update(array_merge($payload, ['hours_worked' => $task->hours_worked]));
+        $task = $task->load('documentLinks');
 
-//         // Calculate hours worked considering suspension
-//         if ($task->status === 'Suspended' && $task->time_suspended) {
-//             $suspensionDuration = Carbon::parse($task->time_suspended)->diffInSeconds(Carbon::now());
-//             $task->hours_worked = ($task->hours_worked ?? 0) + $suspensionDuration / 3600; // Convert seconds to hours
-//         }
-
-//         if ($task->date_added) {
-//             $dateAdded = Carbon::parse($task->date_added);
-//             $totalWorkedDuration = $dateAdded->diffInSeconds(Carbon::now()) - ($suspensionDuration ?? 0);
-//             $payload['hours_worked'] = $totalWorkedDuration / 3600; // Convert seconds to hours
-//         } else {
-//             $payload['hours_worked'] = $task->hours_worked ?? 0;
-//         }
-
-//         $payload['time_suspended'] = null; // Clear suspension on completion
-//     }
-
-//     // Validate the document links count
-//     if (isset($payload['document_links'])) {
-//         $documentLinksCount = count($payload['document_links']);
-//         $noOfDocument = $payload['no_of_document'] ?? $task->no_of_document;
-
-//         if ($documentLinksCount !== $noOfDocument) {
-//             return [
-//                 'status' => 422,
-//                 'message' => "The number of document links must match exactly the specified no_of_document. Expected: $noOfDocument, Got: $documentLinksCount",
-//             ];
-//         }
-
-//         // Separate the document links update logic
-//         $this->updateDocumentLinks($task, $payload['document_links']);
-//     }
-
-//     // Update task fields
-//     $task->update($payload);
-
-//     // Reload task with its document links to reflect the updated data
-//     $task = $task->load('documentLinks');
-
-//     return [
-//         'data' => $task,
-//         'status' => 200,
-//         'message' => 'Task updated successfully!',
-//     ];
-// }
-// public function update(int $id, array $payload)
-// {
-//     $task = Task::find($id);
-//     $user = JWTAuth::parseToken()->authenticate();
-
-//     if (!$task) {
-//         return $this->errorResponse('Task not found!');
-//     }
-
-//     if (isset($payload['status']) && $payload['status'] === 'In Progress') {
-//         $existingTaskInProgress = Task::where('status', 'In Progress')
-//             ->where('user_id', $user->id)
-//             ->where('id', '!=', $id)
-//             ->exists();
-
-//         if ($existingTaskInProgress) {
-//             return [
-//                 'status' => 400,
-//                 'message' => 'Another task is already In Progress. You cannot update this task to In Progress.',
-//             ];
-//         }
-
-//         if ($task->status === 'Suspended' && $task->time_suspended) {
-//             $suspensionDuration = Carbon::parse($task->time_suspended)->diffInSeconds(Carbon::now());
-//             $task->hours_worked = ($task->hours_worked ?? 0) + $suspensionDuration / 3600;
-//             $task->time_suspended = null;
-//         }
-//     }
-
-//     if (isset($payload['status']) && $payload['status'] === 'Suspended') {
-//         if ($task->status === 'In Progress' && $task->updated_at) {
-//             $workDuration = $task->updated_at->diffInSeconds(Carbon::now());
-//             $task->hours_worked = ($task->hours_worked ?? 0) + $workDuration / 3600;
-//         }
-//         $payload['hours_worked'] = $task->hours_worked;
-//         $payload['time_suspended'] = Carbon::now();
-//     }
-
-//     if (isset($payload['status']) && $payload['status'] === 'Done') {
-//         if ($task->status === 'In Progress') {
-//             $workDuration = $task->updated_at->diffInSeconds(Carbon::now());
-//             $task->hours_worked = ($task->hours_worked ?? 0) + $workDuration / 3600;
-//         }
-//         $payload['hours_worked'] = $task->hours_worked;
-//         $payload['date_finished'] = Carbon::now();
-//         $payload['time_suspended'] = null;
-//     }
-
-//     if (isset($payload['document_links'])) {
-//         $documentLinksCount = count($payload['document_links']);
-//         $noOfDocument = $payload['no_of_document'] ?? $task->no_of_document;
-
-//         if ($documentLinksCount !== $noOfDocument) {
-//             return [
-//                 'status' => 422,
-//                 'message' => "The number of document links must match exactly the specified no_of_document. Expected: $noOfDocument, Got: $documentLinksCount",
-//             ];
-//         }
-//         $this->updateDocumentLinks($task, $payload['document_links']);
-//     }
-
-//     $task->update(array_merge($payload, ['hours_worked' => $task->hours_worked]));
-//     $task = $task->load('documentLinks');
-
-//     return [
-//         'data' => $task,
-//         'status' => 200,
-//         'message' => 'Task updated successfully!',
-//     ];
-// }
-
-public function update(int $id, array $payload)
-{
-    $task = Task::find($id);
-    $user = JWTAuth::parseToken()->authenticate();
-
-    if (!$task) {
-        return $this->errorResponse('Task not found!');
+        return [
+            'data' => $task,
+            'status' => 200,
+            'message' => 'Task updated successfully!',
+        ];
     }
-
-    if (isset($payload['status']) && $payload['status'] === 'In Progress') {
-        $existingTaskInProgress = Task::where('status', 'In Progress')
-            ->where('user_id', $user->id)
-            ->where('id', '!=', $id)
-            ->exists();
-
-        if ($existingTaskInProgress) {
-            return [
-                'status' => 400,
-                'message' => 'Another task is already In Progress. You cannot update this task to In Progress.',
-            ];
-        }
-
-        // Resume from suspended state
-        if ($task->status === 'Suspended' && $task->time_suspended) {
-            $suspensionDuration = Carbon::parse($task->time_suspended)->diffInSeconds(Carbon::now());
-            $task->time_suspended = null; // Clear suspension timestamp
-        }
-    }
-
-    if (isset($payload['status']) && $payload['status'] === 'Suspended') {
-        if ($task->status === 'In Progress' && $task->updated_at) {
-            $workDuration = $task->updated_at->diffInSeconds(Carbon::now());
-            $task->hours_worked = ($task->hours_worked ?? 0) + $workDuration / 3600;
-        }
-        $payload['hours_worked'] = $task->hours_worked;
-        $payload['time_suspended'] = Carbon::now();
-    }
-
-    if (isset($payload['status']) && $payload['status'] === 'Done') {
-        if ($task->status === 'Suspended') {
-            return [
-                'status' => 400,
-                'message' => 'A task in Suspended status cannot be marked as Done directly. Please set it to In Progress first.',
-            ];
-        }
-        
-        if ($task->status === 'In Progress') {
-            $workDuration = $task->updated_at->diffInSeconds(Carbon::now());
-            $task->hours_worked = ($task->hours_worked ?? 0) + $workDuration / 3600;
-        }
-        $payload['hours_worked'] = $task->hours_worked;
-        $payload['date_finished'] = Carbon::now();
-        $payload['time_suspended'] = null;
-    }
-
-    if (isset($payload['document_links'])) {
-        $documentLinksCount = count($payload['document_links']);
-        $noOfDocument = $payload['no_of_document'] ?? $task->no_of_document;
-
-        if ($documentLinksCount !== $noOfDocument) {
-            return [
-                'status' => 422,
-                'message' => "The number of document links must match exactly the specified no_of_document. Expected: $noOfDocument, Got: $documentLinksCount",
-            ];
-        }
-        $this->updateDocumentLinks($task, $payload['document_links']);
-    }
-
-    $task->update(array_merge($payload, ['hours_worked' => $task->hours_worked]));
-    $task = $task->load('documentLinks');
-
-    return [
-        'data' => $task,
-        'status' => 200,
-        'message' => 'Task updated successfully!',
-    ];
-}
 
 
 

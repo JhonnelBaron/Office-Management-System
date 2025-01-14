@@ -81,6 +81,7 @@ Route::middleware('auth:api')->group(function () {
 
 Route::middleware(['auth:api', 'userType:employee'])->group(function () {
     // Route::get('/employee', [EmployeeController::class, 'dashboard']);
+    Route::get('user', [TaskController::class, 'getUser']);
     Route::post('addTask', [TaskController::class, 'store']);
     Route::post('updateTask/{id}', [TaskController::class, 'edit']);
     Route::get('task/{id}', [TaskController::class, 'task']);

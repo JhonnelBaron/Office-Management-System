@@ -17,6 +17,12 @@ class TaskController extends Controller
         $this->taskService = $taskService;
     }
 
+    public function getUser()
+    {
+        $user = $this->taskService->getUserData();
+        return response($user, $user['status']);
+    }
+
     public function store(TaskRequest $request)
     {
         $task = $this->taskService->add($request->validated());
