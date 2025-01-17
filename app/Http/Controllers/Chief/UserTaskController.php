@@ -20,4 +20,16 @@ class UserTaskController extends Controller
         $tasks = $this->userTaskService->get();
         return response($tasks, $tasks['status']);
     }
+
+    public function fetchHours()
+    {
+        $tasks = $this->userTaskService->getHours();
+        return response($tasks, $tasks['status']);
+    }
+
+    public function getCounts()
+    {
+        $tasks = $this->userTaskService->getTaskCounts();
+        return response($tasks, $tasks['status']);
+    }
 }

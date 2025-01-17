@@ -71,14 +71,6 @@ Route::middleware('auth:api')->group(function () {
     route::post('/pusher/auth', [PusherController::class, 'auth']);
 });
 
-// Route::middleware(['auth:api', 'userType:admin'])->group(function () {
-//     Route::get('/admin', [AdminController::class, 'dashboard']);
-// });
-
-// Route::middleware(['auth:api', 'userType:chief'])->group(function () {
-//     Route::get('/chief', [ChiefController::class, 'dashboard']);
-// });
-
 Route::middleware(['auth:api', 'userType:employee'])->group(function () {
     // Route::get('/employee', [EmployeeController::class, 'dashboard']);
     Route::get('user', [TaskController::class, 'getUser']);
@@ -95,4 +87,5 @@ Route::middleware(['auth:api', 'userType:chief'])->group(function (){
     Route::get('/attendance', [AttendanceController::class, 'fetch']);
     Route::get('/employees', [AttendanceController::class, 'fetchEmployees']);
     Route::get('/hours', [UserTaskController::class, 'fetchHours']);
+    Route::get('/tasks-count', [UserTaskController::class, 'getCounts']);
 });
