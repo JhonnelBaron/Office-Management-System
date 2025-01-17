@@ -13,6 +13,10 @@ class UserTaskService
             $query->select('id', 'first_name', 'last_name');
         }])
         ->get();
+
+        $tasks->each(function ($task) {
+            $task->links = $task->documentLinks->pluck('document_link');
+        });
         return [
             'tasks' => $tasks,
             'message' => 'Tasks retrieved successfully',
