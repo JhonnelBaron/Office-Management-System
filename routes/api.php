@@ -64,6 +64,7 @@ Route::get('registration', [AuthController::class, 'showRegistrationForm']);
 Route::get('login', [AuthController::class, 'showLoginForm']);
 Route::post('login', [AuthController::class, 'login']);
 Route::post('login-photo', [FileController::class, 'store']);
+Route::post('timeout', [AuthController::class, 'timeout']);
 Route::middleware('auth:api')->group(function () {
     Route::get('me', [AuthController::class, 'me']);
     Route::post('logout', [AuthController::class, 'logout']);

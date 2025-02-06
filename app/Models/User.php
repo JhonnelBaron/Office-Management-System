@@ -76,6 +76,11 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(Login::class, 'user_id');
     }
 
+    public function loginPhoto()
+    {
+        return $this->hasMany(LoginPhoto::class, 'user_id');
+    }
+
     public function task()
     {
         return $this->hasMany(Task::class, 'user_id');

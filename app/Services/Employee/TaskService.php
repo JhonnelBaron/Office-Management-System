@@ -239,8 +239,8 @@ class TaskService
             'data' => $task
         ];
     }
-    
 
+    
 
     private function errorResponse($message): array
     {
