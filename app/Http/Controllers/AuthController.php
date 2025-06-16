@@ -23,12 +23,12 @@ class AuthController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            new Middleware('auth:api', except: ['login','showLoginForm', 'showRegistrationForm', 'passwordResetLink', 'resetPassword']),
+            new Middleware('auth:api', except: ['login','showLoginForm', 'showRegistrationForm', 'passwordResetLink', 'resetPassword','logout','timeout']),
         ];
     }
 
     public function login(Request $request)
-{   
+    {   
     $userIp = $request->ip(); 
     $allowedIp = env('OFFICE_LAPTOP_IP');
     $allowedFingerprint = env('OFFICE_FINGERPRINT');
@@ -69,141 +69,8 @@ class AuthController extends Controller implements HasMiddleware
     }
 
     return $this->respondWithToken($token, $timeIn);
-}
+    }
 
-
-    // public function login(Request $request)
-    // {   
-    //     $userIp = $request->ip(); 
-    //     $allowedIp = env('OFFICE_LAPTOP_IP');
-    //     $allowedFingeprint = env('OFFICE_FINGERPRINT');
-
-    //         // Debugging: Log the incoming IP and compare
-    //     Log::info('Incoming IP: ' . $userIp);
-    //     Log::info('Allowed IP: ' . $allowedIp);
-
-    //     if ($request->ip() !== $allowedIp){
-    //         return response()->json(['error' => 'Unauthorized IP'], 401);
-    //     }
-
-    //     if ($request->input('deviceFingerprint') !== $allowedFingeprint){
-    //         return response()->json(['error' => 'Unauthorized device'], 401);
-    //     }
-
-    //     $credentials = $request->only('email', 'password');
-    //     $user = User::where('email', $credentials['email'])->first();
-
-    //     if (!$user || $user->status !== 'active'){
-    //         return response()->json(['error' => 'Account not active'], 401);
-    //     }
-
-    //     if (!$token =JWTAuth::attempt($credentials)){
-    //         return response()->json(['error' => 'Unauthorized'], 401);
-    //     }
-
-    //     $timeIn = $this->logLoginTime($user->id);
-    //     return $this->respondWithToken($token, $timeIn);
-    // }
-
-    // public function login(Request $request)
-    // {
-    //     $credentials = $request->only('email', 'password');
-
-    //     // Check if user exists and is active
-    //     $user = User::where('email', $credentials['email'])->first();
-
-    //     if (!$user || $user->status !== 'active') {
-    //         return response()->json(['error' => 'Account not active'], 401);
-    //     }
-
-    //     if (!$token = JWTAuth::attempt($credentials)) {
-    //         return response()->json(['error' => 'Unauthorized'], 401);
-    //     }
-
-    //     // Capture the login time from logLoginTime
-    //     $timeIn = $this->logLoginTime($user->id);
-
-    //     // Include the login time in the response
-    //     return $this->respondWithToken($token, $timeIn);
-    // }
-
-    // private function logLoginTime($userId)
-    // {
-    //     // Get the current time and date
-    //     $currentTime = now();
-    //     $currentDate = $currentTime->toDateString();
-    //     $timeIn = $currentTime->format('H:i:s');
-    
-    //     // Define 8 AM and 4 AM for comparison
-    //     $eightAM = \Carbon\Carbon::createFromTime(8, 0, 0);
-    //     $fourAM = \Carbon\Carbon::createFromTime(4, 0, 0);
-    //     $timeInCarbon = \Carbon\Carbon::createFromFormat('H:i:s', $timeIn);
-    
-    //     // Check if the login time is valid (after 4 AM)
-    //     if ($timeInCarbon->isBefore($fourAM)) {
-    //         // If the login time is before 4 AM, do not record it
-    //         return; // Exit the function early
-    //     }
-    
-    //     // Initialize allowance variables
-    //     $allowanceMinutes = 0;
-    //     $allowanceHours = 0;
-    
-    //     // Determine the status and allowance
-    //     if ($timeInCarbon->isBefore($eightAM)) {
-    //         $status = 'early';
-    //         $allowanceMinutes = $eightAM->diffInMinutes($timeInCarbon);
-    //     } elseif ($timeInCarbon->eq($eightAM)) {
-    //         $status = 'exactly';
-    //         $allowanceMinutes = 0;
-    //     } else { // After 8 AM
-    //         $status = 'late';
-    //         // Calculate how late the user is
-    //         $allowanceHours = $eightAM->diffInHours($timeInCarbon); // Get the hours late
-    //         $allowanceMinutes = $eightAM->diffInMinutes($timeInCarbon) % 60; // Get the remaining minutes
-    //     }
-    
-    //     // Ensure allowance hours and minutes are non-negative
-    //     $allowanceHours = max(0, $allowanceHours);
-    //     $allowanceMinutes = max(0, $allowanceMinutes);
-    
-    //     // Format allowance as HH:MM:SS
-    //     $allowanceFormatted = sprintf('%02d:%02d:00', $allowanceHours, $allowanceMinutes);
-    
-    // // Determine the score based on the allowance
-    // if ($status === 'exactly') {
-    //     $score = 3; // Score for logging in exactly at 8:00 AM
-    // } elseif ($status === 'late') {
-    //     // Adjusted scoring logic based on total minutes
-    //     if ($allowanceHours === 0 && $allowanceMinutes <= 30) {
-    //         $score = 2; // Score if late but within 30 minutes
-    //     } else {
-    //         $score = 1; // Score if late and more than 30 minutes
-    //     }
-    // } else { // Early
-    //     $score = 3; // Assuming you want 3 points for being early
-    // }
-    
-    //     // Check if a record for today already exists for this user
-    //     $existingLogin = Login::where('user_id', $userId)
-    //         ->where('date', $currentDate)
-    //         ->first();
-    
-    //     // If no record exists, create a new one
-    //     if (!$existingLogin) {
-    //         Login::create([
-    //             'user_id' => $userId,
-    //             'time_in' => $timeIn,
-    //             'date' => $currentDate,
-    //             'status' => $status,
-    //             'allowance' => $allowanceFormatted, // Store formatted allowance correctly
-    //             'score' => $score,
-    //             'validation' => null, // Assuming you may have some validation logic later
-    //             'validated_by' => null, // Assuming you may have this later too
-    //         ]);
-    //     }
-    //       return $timeIn;
-    // }
     private function logLoginTime($userId)
 {
     // Get the current time and date
@@ -278,50 +145,6 @@ class AuthController extends Controller implements HasMiddleware
 
     return $timeIn;
 }
-    
-    
-
-    public function me()
-    {
-        return response()->json(JWTAuth::user());
-    }
-
-    public function logout()
-    { 
-        // Get the currently authenticated user
-        $user = JWTAuth::user();
-
-        // Get the current date
-        $currentDate = now()->toDateString();
-
-        // Retrieve the existing login record for today
-        $existingLogin = Login::where('user_id', $user->id)
-            ->where('date', $currentDate)
-            ->first();
-
-        // If the login record exists, update the time_out
-        if ($existingLogin) {
-            $currentTime = now()->format('H:i:s'); // Get the current time
-            
-            // Replace the existing time_out with the current time
-            $existingLogin->time_out = $currentTime; // Set the time_out
-            
-            // Save the updated record
-            $existingLogin->save();
-        }
-        
-        JWTAuth::invalidate(JWTAuth::getToken());
-
-        return response()->json(['message' => 'Successfully logged out']);
-    }
-    public function refresh()
-    {
-        // Refresh the JWT token
-        $newToken = JWTAuth::refresh();
-    
-        // Return the refreshed token response
-        return $this->respondWithToken($newToken);
-    }
 
     protected function respondWithToken($token, $timeIn = null)
     {
@@ -362,6 +185,90 @@ class AuthController extends Controller implements HasMiddleware
 
 
             return response()->json($response);
+    }
+
+    public function me()
+    {
+        return response()->json(JWTAuth::user());
+    }
+
+    public function timeout(Request $request)
+    {
+        // Validate the email and password manually against the database
+        $credentials = $request->only('email', 'password');
+    
+        // Find the user by email
+        $user = User::where('email', $credentials['email'])->first();
+    
+        // Check if user exists and the password matches
+        if (!$user || !Hash::check($credentials['password'], $user->password)) {
+            return response()->json(['error' => 'Invalid credentials'], 401);
+        }
+    
+        // Get the current date
+        $currentDate = now()->toDateString();
+    
+        // Get the current time of logout
+        $logoutTime = now()->format('H:i:s');
+    
+        // Retrieve the existing login record for today
+        $existingLogin = Login::where('user_id', $user->id)
+            ->where('date', $currentDate)
+            ->first();
+    
+        // If the login record exists, update the time_out
+        if ($existingLogin) {
+            $existingLogin->time_out = $logoutTime; // Set current time as timeout
+            $existingLogin->save();
+        }
+    
+        // Optionally, log the user out from the frontend (if applicable)
+        // You could handle this by simply redirecting the user or clearing any stored session tokens
+    
+        // Return the response with logout time
+        return response()->json([
+            'message' => 'You have been succesffully logged out.',
+            'logout_time' => $logoutTime // Return the time of logout
+        ]);
+    }
+    
+
+
+    public function logout()
+    { 
+        // Get the currently authenticated user
+        $user = JWTAuth::user();
+
+        // Get the current date
+        $currentDate = now()->toDateString();
+
+        // Retrieve the existing login record for today
+        $existingLogin = Login::where('user_id', $user->id)
+            ->where('date', $currentDate)
+            ->first();
+
+        // If the login record exists, update the time_out
+        if ($existingLogin) {
+            $currentTime = now()->format('H:i:s'); // Get the current time
+            
+            // Replace the existing time_out with the current time
+            $existingLogin->time_out = $currentTime; // Set the time_out
+            
+            // Save the updated record
+            $existingLogin->save();
+        }
+        
+        JWTAuth::invalidate(JWTAuth::getToken());
+
+        return response()->json(['message' => 'Successfully logged out']);
+    }
+    public function refresh()
+    {
+        // Refresh the JWT token
+        $newToken = JWTAuth::refresh();
+    
+        // Return the refreshed token response
+        return $this->respondWithToken($newToken);
     }
 
     public function showLoginForm()

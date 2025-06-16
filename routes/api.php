@@ -11,6 +11,7 @@ use App\Http\Controllers\UserAccount\LoginController;
 use App\Http\Controllers\UserAccount\RegistrationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/user', function (Request $request) {
@@ -89,4 +90,24 @@ Route::middleware(['auth:api', 'userType:chief'])->group(function (){
     Route::get('/employees', [AttendanceController::class, 'fetchEmployees']);
     Route::get('/hours', [UserTaskController::class, 'fetchHours']);
     Route::get('/tasks-count', [UserTaskController::class, 'getCounts']);
+});
+
+Route::post('/facebook/webhook', function (Request $request) {
+    $data = $request->all();
+
+    // Log the data to check what Facebook is sending
+    Log::info('Messenger Webhook:', $data);
+
+    return response()->json(['status' => 'success']);
+});
+
+Route::get('/facebook/webhook', function (Request $request) {
+    $verifyToken = env('FB_WEBHOOK_VERIFY_TOKEN');
+
+    if ($request->query('hub_mode') === 'subscribe' && 
+        $request->query('hub_verify_token') === $verifyToken) {
+        return response($request->query('hub_challenge'), 200);
+    }
+
+    return response('Verification failed', 403);
 });
