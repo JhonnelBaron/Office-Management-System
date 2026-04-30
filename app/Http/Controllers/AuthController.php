@@ -155,6 +155,7 @@ class AuthController extends Controller implements HasMiddleware
             'access_token' => $token,
             'token_type' => 'bearer',
             'expires_in' => JWTAuth::factory()->getTTL() * 60,
+            'id' => JWTAuth::user()->id,
             'user_type' => JWTAuth::user()->user_type, // Retrieve authenticated user type
             'first_name' => JWTAuth::user()->first_name,
             'last_name' => JWTAuth::user()->last_name,

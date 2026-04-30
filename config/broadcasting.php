@@ -60,6 +60,7 @@ return [
                 'useTLS' => true,
                 // 'useTLS' => env('PUSHER_SCHEME', 'https') === 'https',
             ],
+            'auth_guards' => ['api'],
             'client_options' => [
                 // Guzzle client options: https://docs.guzzlephp.org/en/stable/request-options.html
             ],
