@@ -5,7 +5,7 @@ echo "🚀 Deployment started..."
 
 git pull origin main
 
-composer install --no-dev --optimize-autoloader
+composer install --no-dev --optimize-autoloader --ignore-platform-reqs
 
 php artisan migrate --force
 
