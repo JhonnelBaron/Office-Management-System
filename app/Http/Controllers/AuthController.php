@@ -30,24 +30,11 @@ class AuthController extends Controller implements HasMiddleware
     public function login(Request $request)
     {   
     $userIp = $request->ip(); 
-    $allowedIp = env('OFFICE_LAPTOP_IP');
-    $allowedFingerprint = env('OFFICE_FINGERPRINT');
-
-    // Debugging: Log the incoming IP and compare
-    Log::info('Incoming IP: ' . $userIp);
-    Log::info('Allowed IP: ' . $allowedIp);
-
-    // Allow login even if the IP is not authorized, but only record time if the IP is authorized
-    $isAuthorizedIp = ($request->ip() === $allowedIp);
-    $isAuthorizedFingerprint = ($request->input('deviceFingerprint') === $allowedFingerprint);
+    $isAuthorizedIp = in_array($userIp, [env('OFFICE_PUBLIC_IP'), '127.0.0.1', '::1']);
 
     // Check for IP and device fingerprint authorization
     if (!$isAuthorizedIp) {
         Log::info('Unauthorized IP attempt: ' . $userIp);
-    }
-
-    if (!$isAuthorizedFingerprint) {
-        Log::info('Unauthorized device fingerprint attempt: ' . $request->input('deviceFingerprint'));
     }
 
     // Always proceed with login regardless of IP or fingerprint
@@ -59,13 +46,13 @@ class AuthController extends Controller implements HasMiddleware
     }
 
     if (!$token = JWTAuth::attempt($credentials)) {
-        return response()->json(['error' => 'Unauthorized'], 401);
+        return response()->json(['error' => 'Invalid credentials'], 401);
     }
 
     // Only log time-in if IP is authorized
     $timeIn = null;
-    if ($isAuthorizedIp && $isAuthorizedFingerprint) {
-        $timeIn = $this->logLoginTime($user->id); // Log the time if authorized IP and device fingerprint match
+    if ($isAuthorizedIp) {
+        $timeIn = $this->logLoginTime($user->id);
     }
 
     return $this->respondWithToken($token, $timeIn);
@@ -131,7 +118,7 @@ class AuthController extends Controller implements HasMiddleware
 
     // If no record exists, create a new one
     if (!$existingLogin) {
-        Login::create([
+       $newLogin = Login::create([
             'user_id' => $userId,
             'time_in' => $timeIn,
             'date' => $currentDate,
@@ -141,14 +128,53 @@ class AuthController extends Controller implements HasMiddleware
             'validation' => null, // Assuming you may have some validation logic later
             'validated_by' => null, // Assuming you may have this later too
         ]);
+        $this->syncToExternalSystem($newLogin, $userId);
     }
 
     return $timeIn;
 }
 
+    private function syncToExternalSystem($loginData, $userId)
+    {
+        $user = User::find($userId);
+        
+        $targetUrl = env('INTERNAL_SYNC_URL');
+        $syncKey = env('INTERNAL_SYNC_KEY');
+        $formattedDate = \Carbon\Carbon::createFromFormat('m-d-Y', $loginData->date)->format('Y-m-d');
+        $formattedTime = \Carbon\Carbon::parse($loginData->time_in)->format('H:i:s');
+
+        $postData = [
+            'employee_id' => $user->employee_id, // Siguraduhin na ito ay integer ID (1, 2, 3...)
+            'first_name'  => $user->first_name,
+            'last_name'   => $user->last_name,
+            'time_in'     => $formattedTime,
+            'date'        => $formattedDate,
+            'status'      => $loginData->status ?? 'present',
+            'secret_key'  => $syncKey
+        ];
+
+        try {
+            $ch = curl_init($targetUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true); // Explicitly set as POST
+            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+            
+            $response = curl_exec($ch);
+            $info = curl_getinfo($ch);
+            curl_close($ch);
+            
+            Log::info("Sync Debug Info:", [
+                'http_code' => $info['http_code'],
+                'response_body' => $response
+            ]);
+        } catch (JWTException $e) {
+            Log::error("Sync to Native PHP Failed: " . $e->getMessage());
+        }
+    }
+
     protected function respondWithToken($token, $timeIn = null)
     {
-           // Retrieve the authenticated user
         JWTAuth::factory()->setTTL(1440); 
         $user = JWTAuth::user(); 
         $response = [
