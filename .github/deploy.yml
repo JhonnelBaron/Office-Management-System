@@ -1,0 +1,22 @@
+name: Laravel Auto Deploy
+
+on:
+  push:
+    branches: [ main ] 
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH and Run Deploy Script
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd /home/u782169281/domains/pink-dotterel-993276.hostingersite.com/projects/Office-Management-System/
+            git pull origin main
+            chmod +x deploy.sh
+            ./deploy.sh
