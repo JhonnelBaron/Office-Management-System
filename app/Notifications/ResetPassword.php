@@ -10,7 +10,7 @@ class ResetPassword extends BaseResetPassword
     public function toMail($notifiable)
     {
         // Construct the frontend URL, pointing to your frontend route (e.g., /update-password)
-        $frontendUrl = 'http://localhost:3000/update-password?token=' . $this->token . '&email=' . urlencode($notifiable->email);
+        $frontendUrl = 'https://pink-dotterel-993276.hostingersite.com/update-password?token=' . $this->token . '&email=' . urlencode($notifiable->email);
     
         // Pass this frontend URL to the email template
         return (new MailMessage)
