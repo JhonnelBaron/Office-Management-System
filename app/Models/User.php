@@ -97,4 +97,9 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->hasMany(Routeslip::class, 'assigned_focal_user_id');
     }
+
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new \App\Notifications\ResetPassword($token));
+    }
 }
