@@ -9,14 +9,20 @@ class UserTaskService
     public function get()
     {
         $tasks = Task::orderBy('created_at', 'desc')
-        ->with(['user' => function($query) {
-            $query->select('id', 'first_name', 'last_name');
-        }])
-        ->get();
+            // 1. Siguraduhin na may existing user at dapat 'employee' ang user_type
+            ->whereHas('user', function($query) {
+                $query->where('user_type', 'employee'); // Sasalahin lang ang mga employee
+            })
+            // 2. I-load lang ang mga kailangang columns ng user
+            ->with(['user' => function($query) {
+                $query->select('id', 'first_name', 'last_name', 'user_type'); 
+            }])
+            ->get();
 
         $tasks->each(function ($task) {
             $task->links = $task->documentLinks->pluck('document_link');
         });
+
         return [
             'tasks' => $tasks,
             'message' => 'Tasks retrieved successfully',
